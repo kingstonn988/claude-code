@@ -25,21 +25,31 @@ generative speech-enhancement model can plausibly reconstruct it.
 **Do the questioners separate from the teacher by level?** This decides
 everything downstream, and there are two cases:
 
-| Histogram | Meaning | What to do |
+| Verdict | Meaning | What to do |
 |---|---|---|
-| **Two clusters with a gap** | Questioners far off-mic, 16–31 dB down | `05_boost_questions.py` finds and raises every one automatically |
-| **One broad hump** | Questioners near the mic, within a few dB | Nothing to amplify. Questions can't be located by level — split from timestamps or a transcript |
+| **Faint speech present** | Audience questions 10–30 dB below the teacher | `05_boost_questions.py` finds and raises every one |
+| **No faint speech** | Solo talk, or questioners sitting near the mic | Nothing to raise. Split by content if you want sections |
 
-Both cases turned up in the first two talks, so do not assume.
+Do not test for a bimodal distribution. An earlier version of this looked for
+two humps with a valley between them, and got two of four talks wrong: where
+several questioners sit at several distances, the valley fills in and the
+histogram reads as one hump even though the talk plainly contains questions
+15–25 dB down. What matters is only whether there is a meaningful amount of
+speech well below the teacher.
 
-Run the cluster test on a **whole talk**, not an excerpt — it needs at least
-25 seconds of speech on each side of the valley before it will call two
-clusters, so a few minutes of audio will read as one.
+Calibrated against six recordings, correct on all six:
 
-The verdicts are heuristics, not proof. They were calibrated against two
-known files: *Essentials of Practice* (processed, two clusters) and *Right
-Effort* (raw, one cluster). Treat a borderline result as a prompt to listen,
-not as an answer.
+| Talk | Faint speech | Verdict |
+|---|---|---|
+| Essentials of Practice | 380 s | present — 20 questions |
+| Introduction to the Sangha | 466 s | present |
+| Curing Discontent | 194 s | present — "I have a question" at 17:32 |
+| The Five Precepts | 161 s | present |
+| Mindfulness | 16 s | none — solo talk |
+| Right Effort | 17 s | none — questioners near the mic |
+
+Still a heuristic. Transcribe the faint passages before processing to confirm
+they are questions rather than a cough or a passing motorbike.
 
 ## The scripts
 

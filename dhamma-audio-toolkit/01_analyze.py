@@ -127,37 +127,43 @@ for i, val in enumerate(hist):
     if val > 0.4:
         print("   %6.1f..%6.1f %7.1fs %s" % (edges[i], edges[i + 1], val, "#" * int(val / 12)))
 
-# Two speakers show up as a bimodal distribution: two humps with a VALLEY
-# between them. Do not look for empty bins -- the valley is rarely empty, it
-# is just far lower than the humps on either side. Test the depth of the dip
-# relative to the smaller hump, and require real speech on both sides so a
-# thin tail into the noise floor is not mistaken for a second speaker.
-MIN_SIDE  = 25.0     # seconds of speech needed either side
-MIN_RATIO = 4.0      # smaller hump must be this many times the valley
+# What matters is not whether the distribution is bimodal, but simply whether
+# there is a meaningful amount of speech well below the teacher. Testing for
+# two distinct humps was wrong: talks with several questioners at several
+# distances fill the valley in and read as one cluster, even when they plainly
+# contain questions 15-25 dB down. Calibrated against six recordings.
+FAINT_BELOW = 10.0   # dB below the teacher to count as "not the teacher"
+MIN_RUN     = 2.0    # a candidate must be at least this long to be an utterance
+MIN_TOTAL   = 20.0   # and there must be at least this much of it in total
 
-best = (0.0, None)
-for i in range(1, len(hist) - 1):
-    valley = max(hist[i], 0.5)
-    below, above = hist[:i].sum(), hist[i + 1:].sum()
-    if below < MIN_SIDE or above < MIN_SIDE:
+faint_thr = speech - FAINT_BELOW
+runs, total = [], 0.0
+for s_ in segs:
+    if s_["odb"] >= faint_thr:
         continue
-    peak_lo, peak_hi = hist[:i].max(), hist[i + 1:].max()
-    if hist[i] > peak_lo or hist[i] > peak_hi:
-        continue                      # not a dip
-    ratio = min(peak_lo, peak_hi) / valley
-    if ratio > best[0]:
-        best = (ratio, edges[i])
-ratio, split_at = best
+    if runs and s_["s"] - runs[-1][1] <= 3.0:
+        runs[-1][1] = s_["e"]
+    else:
+        runs.append([s_["s"], s_["e"]])
+runs = [r for r in runs if r[1] - r[0] >= MIN_RUN]
+total = sum(r[1] - r[0] for r in runs)
 
-print("\n  deepest valley: %.1fx (needs >%.0fx)%s" % (
-    ratio, MIN_RATIO, "" if split_at is None else " at %.1f dBFS" % split_at))
-if ratio >= MIN_RATIO:
-    print("  -> TWO CLUSTERS, split at about %.0f dBFS." % split_at)
-    print("     Questions can be found automatically.")
-    json.dump({"split_dbfs": round(float(split_at), 2), "teacher_dbfs": round(speech, 2)},
-              open(os.path.join(WORK, "levels.json"), "w"))
-    print("     Next: python3 05_boost_questions.py %s %s" % (SRC, WORK))
+print("\n  teacher at %.1f dBFS; speech below %.1f dBFS:" % (speech, faint_thr))
+print("  %d passages, %.0f seconds in total" % (len(runs), total))
+if runs:
+    lo = min(np.median([x["odb"] for x in segs
+                        if x["s"] >= r[0] and x["e"] <= r[1]] or [0]) for r in runs)
+    print("  quietest passage sits about %.0f dB below the teacher" % abs(lo - speech))
+json.dump({"teacher_dbfs": round(speech, 2), "faint_thr": round(faint_thr, 2),
+           "faint_runs": [[round(a, 2), round(b, 2)] for a, b in runs]},
+          open(os.path.join(WORK, "levels.json"), "w"))
+
+if total >= MIN_TOTAL:
+    print("\n  -> FAINT SPEECH PRESENT. Very likely audience questions.")
+    print("     Check what they are before processing:")
+    print("       python3 02_transcribe.py %s %s" % (SRC, WORK))
+    print("     Then raise them with:")
+    print("       python3 05_boost_questions.py %s %s" % (SRC, WORK))
 else:
-    print("  -> ONE CLUSTER. Questioners are at a similar level to the teacher.")
-    print("     Nothing to amplify, and questions cannot be located by level.")
-    print("     Split this one from timestamps or a transcript instead.")
+    print("\n  -> NO FAINT SPEECH. Reads as a solo talk with no audience questions.")
+    print("     Nothing to raise. Split by content if you want it in sections.")
