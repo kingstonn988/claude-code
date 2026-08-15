@@ -48,11 +48,15 @@ for s in segs:
 
 
 def prune(rs):
+    """Drop faint runs too short to be a question. Only faint runs -- applying
+    the minimum to the teacher's runs as well merges his short remarks into
+    whatever precedes them and destroys the structure."""
     out = []
     for r in rs:
-        if r["sp"] < MIN_Q and out:          # too short to be an utterance
+        # span, not summed speech: a question broken into short bursts by the
+        # voice detector still spans long enough to be a question
+        if r["faint"] and (r["e"] - r["s"]) < MIN_Q and out:
             out[-1]["e"] = r["e"]
-            out[-1]["odb"] += r["odb"]
             continue
         if out and out[-1]["faint"] == r["faint"]:
             out[-1]["e"] = r["e"]
