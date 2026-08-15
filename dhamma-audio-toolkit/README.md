@@ -103,6 +103,14 @@ order and the faintest questions suffered for it.
 
 ## Transcripts
 
+`08_correct_transcript.py` applies the glossary mechanically. On Whisper
+output it is close to useless -- 1 to 7 substitutions across a whole talk,
+because `base.en` does not mis-spell Pali, it invents unrelated English
+("they eat the ingredients", "it's a curse" x28). Nothing recovers a sentence
+that was never transcribed. The script earns its place only on a YouTube
+`.sbv`, where the words are broadly right and the Pali is the part that fails.
+
+
 `02_transcribe.py` runs Whisper `base.en` — the largest model reachable from
 this environment, since huggingface.co is blocked by the egress policy and the
 k2-fsa GitHub release mirror is what carries the weights.
