@@ -106,6 +106,38 @@ Watch for phrase repetition in the output ("it's a curse" 28 times over). That
 is Whisper collapsing on audio it cannot handle, and it means the file needs
 enhancing before any transcript is worth having.
 
+## Starting a new session
+
+Containers do not persist. To pick this work up again:
+
+1. Open a new Claude Code session on this repository
+2. Attach the talk (**MP3 attaches directly; zip any images** — pictures pasted
+   into a conversation reach the assistant as vision content and never land on
+   disk, so the bytes have to arrive as a zip)
+3. Paste the prompt below
+
+---
+
+> Read `dhamma-audio-toolkit/README.md` first, then run
+> `dhamma-audio-toolkit/setup.sh` to restore the environment (~5 min; ffmpeg,
+> python packages, and the speech models from the k2-fsa GitHub mirror —
+> huggingface.co is blocked here).
+>
+> Then run `01_analyze.py` on the attached talk and **tell me the verdict
+> before processing anything**. I want to know whether the file has already
+> been treated, and whether the questioners separate from the teacher by
+> level — that decides what can be done with it.
+>
+> Context: these are Dhamma talks by Ajahn Panyavaddho being published to
+> YouTube as separate question-and-answer videos. Audio work only — no noise
+> reduction unless the file has never had any, and questions get flat
+> amplification (Audacity's Amplify), never compression. If I ask for chitchat
+> to be cut, propose the passages and wait for me to approve them.
+
+---
+
+Attach `GLOSSARY.md` too if the session will be correcting a YouTube `.sbv`.
+
 ## Environment notes
 
 - `huggingface.co`, Google hosts and the ElevenLabs API are blocked by the
