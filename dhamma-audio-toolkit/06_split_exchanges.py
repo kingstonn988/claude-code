@@ -18,7 +18,7 @@ LEAD_IN, TAIL, JOIN = 2.5, 1.5, 2.5
 # A published exchange is a question plus a real answer. Anything much shorter
 # is a brief interjection -- "yes", a murmur, a half-sentence aside -- and
 # belongs with the exchange it interrupts rather than in a video of its own.
-MIN_EXCHANGE = 100.0
+MIN_EXCHANGE = 150.0
 
 # A question has to be an utterance, not a fragment: long enough to be speech,
 # clearly below the teacher, and clearly ABOVE the noise floor. Without that
@@ -97,13 +97,22 @@ for k, i in enumerate(qi):
                   "e": round(min(max(ends) + TAIL, nxt), 2) if ends else round(nxt, 2),
                   "q": [[round(runs[i]["s"], 2), round(runs[i]["e"], 2),
                          round(float(np.median(runs[i]["odb"])), 2)]]})
+# Absorb short exchanges into the piece being built, but only while that
+# piece is still under the floor. Testing each raw exchange on its own made
+# the first piece swallow the entire talk, since almost every one is short.
 merged = []
 for it in items:
-    if merged and it["kind"] == "qa" and it["e"] - it["s"] < MIN_EXCHANGE:
+    if (merged and it["kind"] == "qa"
+            and merged[-1]["e"] - merged[-1]["s"] < MIN_EXCHANGE):
         merged[-1]["e"] = it["e"]
         merged[-1]["q"] += it["q"]
     else:
-        merged.append(it)
+        merged.append(dict(it))
+# a trailing piece can still fall short; fold it back
+while len(merged) > 1 and merged[-1]["e"] - merged[-1]["s"] < MIN_EXCHANGE:
+    tail = merged.pop()
+    merged[-1]["e"] = tail["e"]
+    merged[-1]["q"] += tail["q"]
 offset = 0 if merged and merged[0]["kind"] == "talk" else 1
 for i, it in enumerate(merged):
     it["n"] = i + offset
