@@ -15,6 +15,10 @@ import numpy as np
 
 WORK = sys.argv[1]
 LEAD_IN, TAIL, JOIN = 2.5, 1.5, 2.5
+# A published exchange is a question plus a real answer. Anything much shorter
+# is a brief interjection -- "yes", a murmur, a half-sentence aside -- and
+# belongs with the exchange it interrupts rather than in a video of its own.
+MIN_EXCHANGE = 100.0
 
 # A question has to be an utterance, not a fragment: long enough to be speech,
 # clearly below the teacher, and clearly ABOVE the noise floor. Without that
@@ -93,6 +97,18 @@ for k, i in enumerate(qi):
                   "e": round(min(max(ends) + TAIL, nxt), 2) if ends else round(nxt, 2),
                   "q": [[round(runs[i]["s"], 2), round(runs[i]["e"], 2),
                          round(float(np.median(runs[i]["odb"])), 2)]]})
+merged = []
+for it in items:
+    if merged and it["kind"] == "qa" and it["e"] - it["s"] < MIN_EXCHANGE:
+        merged[-1]["e"] = it["e"]
+        merged[-1]["q"] += it["q"]
+    else:
+        merged.append(it)
+offset = 0 if merged and merged[0]["kind"] == "talk" else 1
+for i, it in enumerate(merged):
+    it["n"] = i + offset
+items = merged
+
 json.dump({"items": items, "teacher_dbfs": lv["teacher_dbfs"]},
           open(os.path.join(WORK, "exchanges.json"), "w"), indent=1)
 
@@ -101,7 +117,7 @@ def mm(t):
     return "%d:%02d" % (int(t) // 60, int(t) % 60)
 
 
-print("%d pieces (%d questions)" % (len(items), len(qi)))
+print("%d pieces (%d raw questions merged to %d)" % (len(items), len(qi), sum(1 for i in items if i["kind"]=="qa")))
 for it in items:
     q = "  question %s-%s at %.0f dB" % (mm(it["q"][0][0]), mm(it["q"][0][1]),
                                          it["q"][0][2]) if it["q"] else ""
