@@ -18,7 +18,7 @@ LEAD_IN, TAIL, JOIN = 2.5, 1.5, 2.5
 # A published exchange is a question plus a real answer. Anything much shorter
 # is a brief interjection -- "yes", a murmur, a half-sentence aside -- and
 # belongs with the exchange it interrupts rather than in a video of its own.
-MIN_EXCHANGE = 150.0
+MIN_EXCHANGE = 120.0
 
 # A question has to be an utterance, not a fragment: long enough to be speech,
 # clearly below the teacher, and clearly ABOVE the noise floor. Without that
