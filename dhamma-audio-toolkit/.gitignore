@@ -1,0 +1,6 @@
+models/
+work/
+*.wav
+*.mp3
+*.mp4
+*_DONE
